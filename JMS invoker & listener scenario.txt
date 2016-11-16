@@ -1,0 +1,84 @@
+fixedDepositService: jmsTemplate
+
+fixedDepositService.createFixedDeposit(fixedDepositDetails)
+	// send 2 messages: to email, to database interaction
+
+==> 1. declare as a @Transactional method
+	
+	2. 
+	// register email data with message, then pass message to listener
+	jmsTemplate.send("emailQueueDestination", new MessageObject(){
+		XXX sendMessage(Session session){
+			textMessage = session.createTextMessage();
+			textMessage.setText(fdd.getEmailAddress());
+		}
+	})
+		// register fixedDeposite data with message, pass fixedDepositDetails to listener
+		jmsTemplate.send("fixedDepositeDestination", new MessageObject(){
+			XXX sendMessage(Session session){
+				objectMessage = session.createObjectMessage();
+				objectMessage.setObject(fixedDepositDetails);
+			}
+		})
+
+
+OR 
+	transactionTemplate.execuete(new TransactionObject(){
+		XXX doInTransaction(){
+			jmsTemplate.send("emailQueueDestination", new Message(){ 
+				XXX createMessage(){
+
+				}
+			});
+			jmsTemplate.send("fixedDepositeDestination", ...{
+				....
+
+			});
+		}
+	});
+
+
+
+Bean configuration file:
+
+// wire destination string with class, put listners into container
+
+<jms:listener-containter>
+	<jms:listener destination = "emailQueueDestination" ref = bean1 />
+	<jms:listener destination = "fixedDepositeDestination" ref = bean2 />
+</jms.listener-containter>
+
+<bean id = "emailMessageListener">
+<bean id = "FixedDepositMessageListener">
+
+
+Listener Class:
+
+FixedDepositMessageListener implements MessageListener
+// dependent on 2 DAO classes:
+	FixedDepositDao myFixedDepositDao;
+	BankAccountDao bankAccountDao;
+
+	void onMessage(Message message){
+		message --- cast to ---> ObjectMessage 
+		fdd = ObjectMessage.getObject();
+
+		if (fdd != null)
+			createFixedDeposit(fdd);
+	}
+
+	XXX createFixedDeposite(){
+		accountDao.subtract(fdd);
+		fddDao.create(fdd);
+	}
+
+
+EmailMessageListener implements MessageListener
+	MailSender mailSender;
+	SimpleEmailMessage simpleEmailMessage;
+
+	void onMessage(Message message){
+		simpleEmailMessage.setReceiver(message);
+		simpleEmailMessage.setText("XXX");
+		mailSender.send(simpleMailMessage);
+	}
